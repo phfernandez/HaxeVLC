@@ -120,6 +120,6 @@ extern class LibVLC
 	
 	public inline function dispose():Void
 	{
-		untyped __cpp__('delete this');
+		untyped __cpp__('::delete this');
 	}
 }
