@@ -12,7 +12,8 @@ import cpp.vm.Thread;
 import haxe.Timer;
 import haxe.io.Bytes;
 import haxe.io.BytesData;
-import lime.math.color.BGRA;
+import lime.math.BGRA;
+//import lime.math.color.BGRA;
 import lime.utils.ArrayBuffer;
 import lime.utils.ArrayBufferView;
 import lime.utils.UInt8Array;
@@ -99,6 +100,8 @@ class VlcBitmap extends Bitmap
 	var bmdBuf2						: BitmapData;
 	var oldTime						: Int;
 	var flipBuffer					: Bool;
+	//var frameBitmap					: Bitmap;
+	var frameRect					: Rectangle;
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 
@@ -272,8 +275,14 @@ class VlcBitmap extends Bitmap
 		if (texture2 != null)
 			texture2.dispose();
 		
-		texture = Lib.current.stage.stage3Ds[0].context3D.createRectangleTexture(videoWidth, videoHeight, BGRA, true);
-		this.bitmapData = BitmapData.fromTexture(texture);
+		// BitmapData
+		this.bitmapData = new BitmapData(Std.int(videoWidth), Std.int(videoHeight), true, 0);
+		frameRect = new Rectangle(0, 0, Std.int(videoWidth), Std.int(videoHeight));
+		
+		// (Stage3D)
+		//texture = Lib.current.stage.stage3Ds[0].context3D.createRectangleTexture(videoWidth, videoHeight, Context3DTextureFormat.BGRA, true);
+		//this.bitmapData = BitmapData.fromTexture(texture);
+		
 		smoothing = true;
 		
 		if (_width != null)
@@ -298,6 +307,8 @@ class VlcBitmap extends Bitmap
 		#end
 	}
 	
+	
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	function vLoop(e)
@@ -317,17 +328,23 @@ class VlcBitmap extends Bitmap
 		{
 			oldTime = cTime;
 		
-			#if (cpp&&!mobile)
-			if (isPlaying && texture != null)
+			#if (cpp && !mobile)
+			//if (isPlaying && texture != null) // (Stage3D)
+			if (isPlaying)
 			{
 				try
 				{
 					NativeArray.setUnmanagedData(bufferMem, libvlc.getPixelData(), frameSize);
 					if (bufferMem != null)
 					{
-						texture.uploadFromByteArray( Bytes.ofData(cast(bufferMem)), 0 );
-						this.width++; //This is a horrible hack to force the texture to update... Surely there is a better way...
-						this.width--;
+						// BitmapData
+						// libvlc.getPixelData() sometimes is null and the exe hangs ...
+						if ( libvlc.getPixelData() != null ) this.bitmapData.setPixels( frameRect, Bytes.ofData(bufferMem) );
+						
+						// (Stage3D)
+						//texture.uploadFromByteArray( Bytes.ofData(cast(bufferMem)), 0 );
+						//this.width++; //This is a horrible hack to force the texture to update... Surely there is a better way...
+						//this.width--;
 					}
 				}
 				catch (e:Error)
